@@ -1,60 +1,71 @@
 'use strict';
-// Change this address if your Cloudflare routing uses a different inbox.
+
 const CONTACT_EMAIL = 'contact@nhexos.tech';
 const dialog = document.querySelector('#access');
-let selectedProject = 'New Product';
+const form = document.querySelector('#access-form');
+const sendLink = document.querySelector('#send-link');
+const emailReady = document.querySelector('#email-ready');
+let selectedProject = 'Interés general';
 let previousTrigger;
-document.querySelectorAll('[data-access]').forEach(button => {
+
+document.querySelectorAll('[data-access]').forEach((button) => {
   button.addEventListener('click', () => {
-    selectedProject = button.dataset.project || 'New Product';
+    selectedProject = button.dataset.project || 'Interés general';
     previousTrigger = button;
-    document.querySelector('#email-ready').classList.add('hidden');
+    emailReady.classList.add('hidden');
     dialog.showModal();
+    form.elements.name.focus();
   });
 });
+
 document.querySelector('.close').addEventListener('click', () => dialog.close());
 dialog.addEventListener('close', () => previousTrigger?.focus());
-dialog.addEventListener('click', event => {
+dialog.addEventListener('click', (event) => {
   if (event.target !== dialog) return;
-  const r = dialog.getBoundingClientRect();
-  if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close();
+  const bounds = dialog.getBoundingClientRect();
+  const isOutside = event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom;
+  if (isOutside) dialog.close();
 });
-const modes = [
-  ['Your idea: a scalable digital product', 'Build. Deploy. Scale.', 'Product strategy → engineering → cloud delivery', [['WEB','Applications'],['MOBILE','Platforms'],['AI','Workflows']]],
-  ['Your goal: connect tools and automate work', 'Connect. Reason. Act.', 'Business context → intelligent workflows', [['CONTEXT','Business data'],['MCP','Connected tools'],['LLMs','Intelligence']]],
-  ['Your goal: repeatable product delivery', 'Release. Monitor. Improve.', 'Application code → automated deployment', [['BUILD','Pipelines'],['DEPLOY','Serverless'],['OPERATE','Infrastructure']]]
+
+const solutions = [
+  { title:'Nhexos Retail', description:'Punto de venta, inventario y reportes para comercios que necesitan una operación más clara.', nodes:[['VENTAS','Cobro y pedidos'],['INVENTARIO','Existencias actualizadas'],['REPORTES','Visibilidad del negocio']], metrics:['En desarrollo','Suscripción prevista'] },
+  { title:'Nhexos Services', description:'Citas, clientes y operaciones para negocios de servicios que coordinan tiempo, equipo y atención.', nodes:[['SOLICITUDES','Casos y clientes'],['AGENDA','Tareas y horarios'],['SEGUIMIENTO','Estado compartido']], metrics:['En desarrollo','Suscripción prevista'] },
+  { title:'Nhexos Inventory', description:'Control de existencias, movimientos y alertas de stock para negocios que necesitan actuar con más contexto.', nodes:[['ENTRADAS','Registro de mercancía'],['EXISTENCIAS','Control por ubicación'],['ALERTAS','Reposición a tiempo']], metrics:['En desarrollo','Suscripción prevista'] },
+  { title:'Nhexos AI', description:'Capacidades de asistencia planeadas para consultar, resumir y capturar información con datos autorizados.', nodes:[['CONSULTA','Pregunta del usuario'],['BACKEND','Datos autorizados'],['CLAUDE','Respuesta asistida']], metrics:['Capacidades previstas','Revisión humana'] }
 ];
-document.querySelectorAll('[data-mode]').forEach(button => {
+
+const setText = (id, value) => { document.querySelector(id).textContent = value; };
+document.querySelectorAll('[data-mode]').forEach((button) => {
   button.addEventListener('click', () => {
-    document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
-    const m = modes[Number(button.dataset.mode)];
-    document.querySelector('#goal').textContent = m[0];
-    document.querySelector('#engine-title').textContent = m[1];
-    document.querySelector('#engine-desc').textContent = m[2];
-    document.querySelector('#nodes').replaceChildren(...m[3].map(n => {
-      const d = document.createElement('div');
-      d.append(document.createTextNode(n[0]));
-      const s = document.createElement('small'); s.textContent = n[1]; d.append(s); return d;
-    }));
+    const solution = solutions[Number(button.dataset.mode)];
+    document.querySelectorAll('[data-mode]').forEach((item) => item.setAttribute('aria-pressed', String(item === button)));
+    setText('#panel-title', solution.title);
+    setText('#panel-description', solution.description);
+    setText('#node-one-label', solution.nodes[0][0]); setText('#node-one-value', solution.nodes[0][1]);
+    setText('#node-two-label', solution.nodes[1][0]); setText('#node-two-value', solution.nodes[1][1]);
+    setText('#node-three-label', solution.nodes[2][0]); setText('#node-three-value', solution.nodes[2][1]);
+    setText('#metric-one', solution.metrics[0]); setText('#metric-two', solution.metrics[1]);
   });
 });
-const milestones = [
-  'Discovery: define the audience, core workflows, and acceptance criteria.',
-  'Development: review the core application and planned AI integrations.',
-  'Delivery: review deployment, documentation, and handover requirements.'
-];
-let milestone = 0;
-document.querySelector('#demo-next').addEventListener('click', () => {
-  document.querySelector('#demo-status').textContent = milestones[milestone];
-  document.querySelectorAll('.milestone').forEach((card,i) => { card.style.borderColor = i === milestone ? '#76efdb' : ''; });
-  milestone = (milestone + 1) % milestones.length;
-});
-document.querySelector('#access-form').addEventListener('submit', event => {
+
+form.addEventListener('submit', (event) => {
   event.preventDefault();
-  const values = new FormData(event.target);
-  const body = 'Hello Nhexos,\n\nI would like to discuss a project.\n\nName: ' + values.get('name') + '\nWork email: ' + values.get('email') + '\nService: ' + selectedProject + '\n\nProject details:\n' + values.get('message');
-  const href = 'mailto:' + CONTACT_EMAIL + '?subject=' + encodeURIComponent('Nhexos — ' + selectedProject + ' Inquiry') + '&body=' + encodeURIComponent(body);
-  document.querySelector('#send-link').href = href;
-  document.querySelector('#email-ready').classList.remove('hidden');
-  document.querySelector('#send-link').click();
+  const values = new FormData(form);
+  const body = ['Hola, Nhexos:', '', 'Quiero conocer más sobre la plataforma.', '', `Nombre: ${values.get('name')}`, `Correo: ${values.get('email')}`, `Interés: ${selectedProject}`, '', 'Giro o necesidad:', values.get('message')].join('\n');
+  sendLink.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(`Nhexos — ${selectedProject}`)}&body=${encodeURIComponent(body)}`;
+  emailReady.classList.remove('hidden');
+  sendLink.focus();
 });
+
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('is-visible');
+      observer.unobserve(entry.target);
+    });
+  }, { threshold:0.12 });
+  document.querySelectorAll('[data-reveal]').forEach((section) => observer.observe(section));
+} else {
+  document.querySelectorAll('[data-reveal]').forEach((section) => section.classList.add('is-visible'));
+}
